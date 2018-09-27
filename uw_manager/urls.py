@@ -37,3 +37,4 @@ urlpatterns = [
     path('test', views.test),
     path('upload.html', views.upload),
 ]
+
