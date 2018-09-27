@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+    <!--jsonp实现跨域访问，原理是通过script标签的src访问，动态生成script，访问结束后删除 -->
+
+    <input id="jsonp-btn" type="button" value="jsonp点击" onclick="jsonp_click();">
+
+<script>
+    TAG = null;
+    function jsonp_click(){
+        TAG = document.createElement("script");
+        TAG.src="http://www.jxntv.cn/data/jmd-jxtv2.html?callback=list&_=1454376870403";
+        document.head.appendChild(TAG);
+    }
+
+    function list(arg) {
+        console.log(arg);
+        document.head.removeChild(TAG);
+    }
+</script>
+</body>
+</html>
