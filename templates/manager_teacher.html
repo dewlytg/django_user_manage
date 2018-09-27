@@ -1,0 +1,206 @@
+{% extends "manager_master.html" %}
+
+{% block css %}
+    table,th,td
+    {
+        border:1px solid black;
+    }
+    .teacher{
+        width:500px;
+        height:400px;
+        background-color:white;
+        position:fixed;
+        left:50%;
+        top:50%;
+        margin-left:-250px;
+        margin-top:-200px;
+    }
+    .add_teacher{
+        z-index:100;
+        }
+    .edit_teacher{
+        z-index:200;
+        }
+
+    #add_teacher_band,#edit_teacher_band,.btn{
+        margin-top:10px;
+        margin-left:10px;
+    }
+    #edit_teacher_id{
+        display:none;
+    }
+    .tip{
+        font-size:small;
+        color:green;
+        }
+    select{
+        width:135px;
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="teacher_content">
+        <button id="add_btn">添加</button><span id="add_span" ></span>
+        <table id="myTable">
+            {% for item in teacher_list %}
+                    {% for cls in item.cls.all %}
+                        <tr>
+                            <td>{{ item.username }}</td>
+                            <td>{{ cls.caption }}</td>
+                            <td teacher_id={{ item.id }} classes_id={{ cls.id }}><span class="teacher_edit">编辑</span>|<span class="teacher_del">删除</span></td>
+                        </tr>
+                    {% endfor %}
+
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
+
+{% block handler-case %}
+     <div class="add_teacher teacher hide">
+         <form id="add_teacher_fm">{% csrf_token %}
+			 <div id="add_teacher_band">
+                 <label for="add_username">姓名</label>
+				 <input id="add_username" name="username" type="text"/><br>
+                 班级&nbsp;<select id="classes_select_id"  name="classes_select" multiple="multiple">
+                     {% for item in classes_list %}
+                         <option value={{ item.id }}>{{ item.caption }}</option>
+                    {% endfor %}
+                 </select>
+			 </div>
+			 <div class="btn">
+                 <input id="add_confirm" type="button" value="确定">
+                 <input id="add_cancel" type="button" value="取消">
+                 <span id="add_check_span"></span>
+             </div>
+		</form>
+     </div>
+
+    <div class="edit_teacher teacher hide">
+         <form id="edit_teacher_fm" class="form">{% csrf_token %}
+			 <div id="edit_teacher_band">
+                 <label for="edit_username">姓名</label>
+				 <input id="edit_username" name="username" type="text"/>
+				 <input id="edit_teacher_id" name="teacher_id" type="text"/><br>
+                 班级&nbsp;<select id="classes_select_id2" name="classes_select" multiple="multiple">
+                     {% for item in classes_list %}
+                         <option value={{ item.id }}>{{ item.caption }}</option>
+                    {% endfor %}
+                 </select>
+			 </div>
+			 <div class="btn">
+                 <input id="edit_confirm" type="button" value="确定">
+                 <input id="edit_cancel" type="button" value="取消">
+                 <span id="edit_check_span"></span>
+             </div>
+		</form>
+     </div>
+{% endblock %}
+
+
+{% block jscontent %}
+    $("#add_btn").click(function () {
+        $(".add_teacher,.modal").removeClass("hide");
+    })
+    $("#add_cancel,#edit_cancel").click(function () {
+        $(".add_teacher,.edit_teacher,.modal").addClass("hide");
+    })
+    $("#add_confirm").click(function () {
+        var username = $("#add_username").val();
+        var classes_id = $('#classes_select_id').val();
+        var classes_list = $('#classes_select_id option:selected');
+        if(username.length!=0){
+            $.ajax({
+                url:"/api/add/teacher",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:$("#add_teacher_fm").serialize(),
+                success:function(data) {
+                    if (data.status) {
+                        $("[teacher_id='" + data.teacher_id + "']").parent().remove();
+                        for (i = 0; i < classes_list.length; i++) {
+                            if ($("#myTable").find("tr").length == 0) {
+                                $("#myTable").html("<tr><td>" + username + "</td><td>" + classes_list[i].text + "</td><td  teacher_id='" + data.teacher_id + "' classes_id='" + classes_list[i].value + "'><span class='teacher_edit'>编辑</span>|<span class='teacher_del'>删除</span></td></tr>");
+                            } else {
+                                $("#myTable tr:last").after("<tr><td>" + username + "</td><td>" + classes_list[i].text + "</td><td  teacher_id='" + data.teacher_id + "' classes_id='" + classes_list[i].value + "'><span class='teacher_edit'>编辑</span>|<span class='teacher_del'>删除</span></td></tr>");
+                            }
+                            $("#add_span").text(data.data).addClass("success");
+                            $(".add_teacher,.modal").addClass("hide");
+                        }
+                    }
+                    else
+                        {
+                            $("#add_span").text(data.error).addClass("failed");
+                            $(".add_teacher,.modal").addClass("hide");
+                        }
+                    }
+            })
+        }else{
+            $("#add_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+    $("#myTable").on("click",".teacher_edit",function(){
+        var current_username = $(this).parent().prev().prev().text();
+        var current_teacher_id = $(this).parent().attr("teacher_id");
+        var current_classes_id = $(this).parent().attr("classes_id");
+        $(".edit_teacher,.modal").removeClass("hide");
+        $("#edit_username").val(current_username);
+        $("#edit_teacher_id").val(current_teacher_id);
+        $("#classes_select_id2").val(current_classes_id);
+    })
+    $("#edit_confirm").click(function () {
+        var username = $("#edit_username").val();
+        var teacher_id = $("#edit_teacher_id").val();
+        var classes_list = $('#classes_select_id2 option:selected');
+        if(username.length!=0){
+        		$.ajax({
+                url:"/api/update/teacher",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:$("#edit_teacher_fm").serialize(),
+                success:function(data) {
+                    if(data.status){
+                        $("[teacher_id='"+teacher_id+"']").parent().remove();
+                        for(i=0;i<classes_list.length;i++){
+                            if ($("#myTable").find("tr").length == 0) {
+                                $("#myTable").html("<tr><td>" + username + "</td><td>" + classes_list[i].text + "</td><td  teacher_id='" + teacher_id + "' classes_id='" + classes_list[i].value + "'><span class='teacher_edit'>编辑</span>|<span class='teacher_del'>删除</span></td></tr>");
+                                }
+                            else{
+                                $("#myTable tr:last").after("<tr><td>" + username + "</td><td>" + classes_list[i].text + "</td><td teacher_id='"+ teacher_id + "' classes_id='"+classes_list[i].value+"'><span class='teacher_edit'>编辑</span>|<span class='teacher_del'>删除</span></td></tr>");
+                            }
+                        }
+                        $("#edit_span").text(data.data).addClass("success");
+                        $(".edit_teacher,.modal").addClass("hide");
+                    }else{
+                        $("#edit_span").text(data.error).addClass("failed");
+                        $(".edit_teacher,.modal").addClass("hide");
+                    }
+                }
+                    })
+        }else{
+        	$("#edit_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+        $("#myTable").on("click",".teacher_del",function () {
+
+    	    var teacher_id = $(this).parent().attr("teacher_id");
+    	    var classes_id = $(this).parent().attr("classes_id");
+            $.ajax({
+                url:"/api/delete/teacher",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:{"id":teacher_id,"classes_id":classes_id},
+                success:function(data) {
+                    if(data.status){
+                        $("[classes_id='"+classes_id+"'][teacher_id='"+teacher_id+"']").parent().remove();
+                        $("#add_span").text(data.data).addClass("success");
+                    }else{
+                        $("#add_span").text(data.error).addClass("failed");
+                    }
+                }
+            })
+    })
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "manager_master.html" %}
+
+{% block css %}
+    table,th,td
+    {
+        border:1px solid black;
+    }
+    .student{
+        width:500px;
+        height:400px;
+        background-color:white;
+        position:fixed;
+        left:50%;
+        top:50%;
+        margin-left:-250px;
+        margin-top:-200px;
+    }
+    .add_student{
+        z-index:100;
+        }
+    .edit_student{
+        z-index:200;
+        }
+
+    #add_student_band,#edit_student_band,.btn{
+        margin-top:10px;
+        margin-left:10px;
+    }
+    #edit_student_id{
+        display:none;
+    }
+    .tip{
+        font-size:small;
+        color:green;
+        }
+    select{
+        width:135px;
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="student_content">
+        <button id="add_btn">添加</button><span id="add_span" ></span>
+        <table id="myTable">
+            {% for item in student_list %}
+                <tr>
+                    <td>{{ item.username }}</td>
+                    <td>{{ item.cls.caption }}</td>
+                    <td student_id={{ item.id }} classes_id={{ item.cls_id }}><span class="student_edit">编辑</span>|<span class="student_del">删除</span></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
+
+{% block handler-case %}
+     <div class="add_student student hide">
+         <form id="add_student_fm">{% csrf_token %}
+			 <div id="add_student_band">
+                 <label for="add_username">姓名</label>
+				 <input id="add_username" name="username" type="text"/><br>
+                 班级&nbsp;<select id="classes_select_id"  name="classes_select">
+                     {% for item in classes_list %}
+                         <option value={{ item.id }}>{{ item.caption }}</option>
+                    {% endfor %}
+                 </select>
+			 </div>
+			 <div class="btn">
+                 <input id="add_confirm" type="button" value="确定">
+                 <input id="add_cancel" type="button" value="取消">
+                 <span id="add_check_span"></span>
+             </div>
+		</form>
+     </div>
+
+    <div class="edit_student student hide">
+         <form id="edit_student_fm" class="form">{% csrf_token %}
+			 <div id="edit_student_band">
+                 <label for="edit_username">姓名</label>
+				 <input id="edit_username" name="username" type="text"/>
+				 <input id="edit_student_id" name="student_id" type="text"/><br>
+                 班级&nbsp;<select id="classes_select_id2" name="classes_select">
+                     {% for item in classes_list %}
+                         <option value={{ item.id }}>{{ item.caption }}</option>
+                    {% endfor %}
+                 </select>
+			 </div>
+			 <div class="btn">
+                 <input id="edit_confirm" type="button" value="确定">
+                 <input id="edit_cancel" type="button" value="取消">
+                 <span id="edit_check_span"></span>
+             </div>
+		</form>
+     </div>
+{% endblock %}
+
+
+{% block jscontent %}
+    $("#add_btn").click(function () {
+        $(".add_student,.modal").removeClass("hide");
+    })
+    $("#add_cancel,#edit_cancel").click(function () {
+        $(".add_student,.edit_student,.modal").addClass("hide");
+    })
+    $("#add_confirm").click(function () {
+        var username = $("#add_username").val();
+        var classes_id = $('#classes_select_id').val();
+        var classes_caption = $("#classes_select_id option:selected").text();
+        if(username.length!=0){
+            $.ajax({
+                url:"/api/add/student",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:$("#add_student_fm").serialize(),
+                success:function(data) {
+                    if(data.status){
+                        if($("#myTable").find("tr").length==0){
+                            $("#myTable").html("<tr><td>" + username + "</td><td>" + classes_caption + "</td><td  student_id='"+ data.student_id + "' classes_id='"+classes_id+"'><span class='student_edit'>编辑</span>|<span class='student_del'>删除</span></td></tr>");
+                        }else{
+                            $("#myTable tr:last").after("<tr><td>" + username + "</td><td>" + classes_caption + "</td><td  student_id='"+ data.student_id + "' classes_id='"+classes_id+"'><span class='student_edit'>编辑</span>|<span class='student_del'>删除</span></td></tr>");
+                        }
+                        $("#add_span").text(data.data).addClass("success");
+                        $(".add_student,.modal").addClass("hide");
+                    }else{
+                        $("#add_span").text(data.error).addClass("failed");
+                        $(".add_student,.modal").addClass("hide");
+                    }
+                }
+            })
+        }else{
+            $("#add_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+    $("#myTable").on("click",".student_edit",function(){
+        var current_username = $(this).parent().prev().prev().text();
+        var current_student_id = $(this).parent().attr("student_id");
+        var current_classes_id = $(this).parent().attr("classes_id");
+        $(".edit_student,.modal").removeClass("hide");
+        $("#edit_username").val(current_username);
+        $("#edit_student_id").val(current_student_id);
+        $("#classes_select_id2").val(current_classes_id);
+    })
+    $("#edit_confirm").click(function () {
+        var username = $("#edit_username").val();
+        var student_id = $("#edit_student_id").val();
+        var classes_id = $('#classes_select_id2').val();
+        var classes_caption = $("#classes_select_id2 option:selected").text();
+        if(username.length!=0){
+        	if($("td[student_id='"+student_id+"']").parent().siblings().find("td:contains("+username+")").length ==0){
+        		$.ajax({
+                url:"/api/update/student",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:{"id":student_id,"username":username,"cls_id":classes_id},
+                success:function(data) {
+                    if(data.status){
+                        $("[student_id='"+student_id+"']").prev().text(classes_caption);
+                        $("[student_id='"+student_id+"']").prev().prev().text(username);
+                        $("#edit_span").text(data.data).addClass("success");
+                        $(".edit_student,.modal").addClass("hide");
+                    }else{
+                        $("#edit_span").text(data.error).addClass("failed");
+                        $(".edit_student,.modal").addClass("hide");
+                    }
+                }
+            })
+        	}else{
+        		$("#edit_check_span").text("已经存在").addClass("tip");
+        	}
+        }else{
+        	$("#edit_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+        $("#myTable").on("click",".student_del",function () {
+
+    	    var student_id = $(this).parent().attr("student_id");
+            $.ajax({
+                url:"/api/delete/student",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:{"id":student_id,},
+                success:function(data) {
+                    if(data.status){
+                        $("[student_id='"+student_id+"']").parent().remove();
+                        $("#add_span").text(data.data).addClass("success");
+                    }else{
+                        $("#add_span").text(data.error).addClass("failed");
+                    }
+                }
+            })
+    })
+{% endblock %}

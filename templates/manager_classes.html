@@ -1,0 +1,175 @@
+{% extends "manager_master.html" %}
+
+{% block css %}
+    table,th,td
+    {
+        border:1px solid black;
+    }
+    .classes{
+        width:500px;
+        height:400px;
+        background-color:white;
+        position:fixed;
+        left:50%;
+        top:50%;
+        margin-left:-250px;
+        margin-top:-200px;
+    }
+    .add_classes{
+        z-index:100;
+        }
+    .edit_classes{
+        z-index:200;
+        }
+
+    #add_classes_caption,#edit_classes_caption,.btn{
+        margin-top:10px;
+        margin-left:10px;
+    }
+    #edit_classes_id{
+        display:none;
+    }
+    .tip{
+        font-size:small;
+        color:green;
+        }
+    .pagination a{
+        padding:5px;
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="classes_content">
+        <button id="add_btn">添加</button><span id="add_span" ></span>
+        <table id="myTable">
+            {% for item in classes_list %}
+                <tr>
+                    <td>{{ item.caption }}</td>
+                    <td classes_id={{ item.id }}><span class="classes_edit">编辑</span>|<span class="classes_del">删除</span></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="pagination">
+        {{ page_str | safe }}
+    </div>
+{% endblock %}
+
+{% block handler-case %}
+     <div class="add_classes classes hide">
+         <form id="add_classes_fm">{% csrf_token %}
+			 <div id="add_classes_caption">
+                 <label for="add_caption">班级名称</label>
+				 <input id="add_caption" name="caption" type="text"/>
+			 </div>
+			 <div class="btn">
+                 <input id="add_confirm" type="button" value="确定">
+                 <input id="add_cancel" type="button" value="取消">
+                 <span id="add_check_span"></span>
+             </div>
+		</form>
+     </div>
+
+    <div class="edit_classes classes hide">
+         <form id="edit_classes_fm" class="form">{% csrf_token %}
+			 <div id="edit_classes_caption">
+                 <label for="edit_caption">班级名称</label>
+				 <input id="edit_caption" name="caption" type="text"/>
+				 <input id="edit_classes_id" name="classes_id" type="text"/>
+			 </div>
+			 <div class="btn">
+                 <input id="edit_confirm" type="button" value="确定">
+                 <input id="edit_cancel" type="button" value="取消">
+                 <span id="edit_check_span"></span>
+             </div>
+		</form>
+     </div>
+{% endblock %}
+
+
+{% block jscontent %}
+    $("#add_btn").click(function () {
+        $(".add_classes,.modal").removeClass("hide");
+    })
+    $("#add_cancel,#edit_cancel").click(function () {
+        $(".add_classes,.edit_classes,.modal").addClass("hide");
+    })
+    $("#add_confirm").click(function () {
+        var caption = $("#add_caption").val();
+        if(caption.length!=0){
+            $.ajax({
+                url:"/api/add/classes",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:$("#add_classes_fm").serialize(),
+                success:function(data) {
+                    if(data.status){
+                        $("#myTable tr:last").after("<tr><td>" + caption + "</td><td  classes_id='"+ data.classes_id + "'><span class='classes_edit'>编辑</span>|<span class='classes_del'>删除</span></td></tr>");
+                        $("#add_span").text(data.data).addClass("success");
+                        $(".add_classes,.modal").addClass("hide");
+                    }else{
+                        $("#add_span").text(data.error).addClass("failed");
+                        $(".add_classes,.modal").addClass("hide");
+                    }
+                }
+            })
+        }else{
+            $("#add_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+    $("#myTable").on("click",".classes_edit",function () {
+        var current_caption = $(this).parent().prev().text();
+        var current_classes_id = $(this).parent().attr("classes_id");
+        $(".edit_classes,.modal").removeClass("hide");
+        $("#edit_caption").val(current_caption);
+        $("#edit_classes_id").val(current_classes_id);
+    })
+       $("#edit_confirm").click(function () {
+        var caption = $("#edit_caption").val();
+        var classes_id = $("#edit_classes_id").val();
+        if(caption.length!=0){
+        	if($("td:contains("+caption+")").length ==0){
+        		$.ajax({
+                url:"/api/update/classes",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:{"id":classes_id,"caption":caption},
+                success:function(data) {
+                    if(data.status){
+                        $("[classes_id='"+classes_id+"']").prev().text(caption);
+                        $("#edit_span").text(data.data).addClass("success");
+                        $(".edit_classes,.modal").addClass("hide");
+                    }else{
+                        $("#edit_span").text(data.error).addClass("failed");
+                        $(".edit_classes,.modal").addClass("hide");
+                    }
+                }
+            })
+        	}else{
+        		$("#edit_check_span").text("已经存在").addClass("tip");
+        	}
+        }else{
+        	$("#edit_check_span").text("请输入内容").addClass("tip");
+        }
+    })
+        $("#myTable").on("click",".classes_del",function () {
+    	    var classes_id = $(this).parent().attr("classes_id");
+            $.ajax({
+                url:"/api/delete/classes",
+                headers:{'X-CSRFToken':$.cookie('csrftoken')},
+                type:"POST",
+                dataType:"JSON",
+                data:{"id":classes_id,},
+                success:function(data) {
+                    if(data.status){
+                        $("[classes_id='"+classes_id+"']").parent().remove();
+                        $("#add_span").text(data.data).addClass("success");
+                    }else{
+                        $("#add_span").text(data.error).addClass("failed");
+                    }
+                }
+            })
+    })
+{% endblock %}

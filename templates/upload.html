@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #imgs img{
+            width: 200px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <h1>iframe测试</h1>
+    <iframe id="ifr" src=""></iframe>
+    <input id="ifr-text" type="text">
+    <input id="ifr-btn" type="button" value="iframe点击">
+</div>
+
+<div>
+    <form method="post" action="/upload.html" enctype="multipart/form-data" target="ifr-1">
+        <iframe style="display: none;" id="ifr-1" name="ifr-1" onload="iframeChange();"></iframe>
+        <input type="text" name="user">
+        <input type="file" name="foo">
+        <input type="submit" value="iframe提交">
+    </form>
+</div>
+
+
+<div id="fm-upload">
+    <form id="fm" method="post" action="/upload.html" enctype="multipart/form-data">{% csrf_token %}
+        <input type="text" name="user"/>
+        <input id="img" type="file" name="foo"/>
+        <input type="submit" value="提交">
+    </form>
+</div>
+
+<div id="xhr-upload">
+    <input type="text" name="user"/>
+    <input id="img-xhr" type="file" name="foo"/>
+    <input id="xhr-btn" type="button" value="xhr提交">
+</div>
+
+<div id="ajax-upload">
+    <input type="text" name="user"/>
+    <input id="img-ajax" type="file" name="foo"/>
+    <input id="ajax-btn" type="button" value="ajax提交">
+</div>
+
+
+<div id="imgs">
+    {% for item in file_list %}
+        <img src="/{{ item.path }}">
+    {% endfor %}
+</div>
+
+<script src="/static/js/jquery-2.1.4.min.js"></script>
+<script>
+    $("#xhr-btn").click(function () {
+        var dict = new FormData();
+        dict.append("user","v1")
+        dict.append("foo",document.getElementById("img-xhr").files[0]);
+
+        xhr = new XMLHttpRequest();
+        xhr.open("post","/upload.html",true);
+
+        xhr.onreadystatechange = function () {
+             if (xhr.readyState==4){
+                 var obj = JSON.parse(xhr.responseText);
+                if(obj.status){
+                    var new_img = document.createElement("img");
+                    new_img.src="/" + obj.path;
+                    $("#imgs").append(new_img);
+                }
+            }
+        }
+        xhr.send(dict);
+    })
+
+    $("#ajax-btn").click(function () {
+        var dict = new FormData();
+        dict.append("user","v1")
+        dict.append("foo",document.getElementById("img-ajax").files[0]);
+
+        $.ajax({
+            url:"/upload.html",
+            type:"POST",
+            dataType:"JSON",
+            data:dict,
+            processData:false,
+            contentType:false,
+            success:function (data) {
+                    var new_img = document.createElement("img");
+                    new_img.src="/" + data.path;
+                    $("#imgs").append(new_img);
+                }
+
+        })
+
+    })
+
+    $("#ifr-btn").click(function () {
+        var btn_text = $("#ifr-text").val();
+        $("#ifr").prop("src",btn_text);
+    })
+
+    function iframeChange() {
+        var text_json = $("#ifr-1").contents().find("body").text();
+        var obj = JSON.parse(text_json);
+        if(obj.status){
+            var new_img = document.createElement("img");
+            new_img.src="/" + obj.path;
+            $("#imgs").append(new_img);
+        }
+    }
+
+</script>
+</body>
+</html>

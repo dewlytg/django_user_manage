@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        *{
+            margin: 0;
+        }
+        .head-bar{
+            height: 48px;
+            width: 100%;
+            background-color: #2459a2;
+            color: whitesmoke;
+            text-align: center;
+            line-height: 48px;
+        }
+        .login{
+            margin-top:100px;
+            margin-right: auto;
+            margin-left: auto;
+            height: 200px;
+            width: 380px;
+            border: 1px solid darkgrey;
+            border-radius: 5px;
+        }
+        .inp{
+            margin-left: 20px;
+            margin-top: 20px;
+        }
+        .btn{
+            width: 65px;
+            height: 50px;
+        }
+        .success {
+            color: green;
+        }
+        .failed{
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="head-bar">用户管理系统</div>
+<div class="content">
+    <div class="login">
+        <div class="inp">
+            <label for="user">用户名：</label>
+            <input id="user" type="text" name="user">
+        </div>
+        <div class="inp">
+            <label for="pwd">密&nbsp;&nbsp;&nbsp;码：</label>
+            <input id="pwd" type="password" name="pwd">
+        </div>
+
+        <input id="ajax_btn" class="btn inp" type="button" value="提交"><span id="tip"></span>
+    </div>
+</div>
+
+<script src="../static/js/jquery-2.1.4.min.js"></script>
+<script src="../static/js/jquery.cookie.js"></script>
+<script>
+    $("#ajax_btn").click(function () {
+        var user = $("#user").val();
+        var pwd = $("#pwd").val();
+        $.ajax({
+            type:"POST",
+            headers:{'X-CSRFToken':$.cookie('csrftoken')},
+            url:"/login.html",
+            data:{"username":user,"password":pwd},
+            dataType:"JSON",
+            success:function (data) {
+                if(data.status){
+                    $("#tip").text(data.data).addClass("success").removeClass("failed");
+                    location.href="/manager.html";
+                    {#window.open("/manager.html")#}
+                }
+                else{
+                    $("#tip").text(data.error).addClass("failed").removeClass("success");
+                }
+            }
+        })
+    })
+</script>
+</body>
+</html>
