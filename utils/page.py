@@ -47,3 +47,5 @@ class Pagination:
             pagination_html_list.append("<a href='/manager/classes?p=%s'>下一页</a>" % next_pagination)
         pagination_html_str = "".join(pagination_html_list)
         return pagination_html_str
+
+

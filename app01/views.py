@@ -188,7 +188,9 @@ def test(request):
         1，一对多关系中的foreignkey字段可以是写fk_id,也可以是fk对象
         2，filter(),get(),update() 中不能使用双引号，字段必须是表存在的，__
         3，values(),values_list() 中要使用双引号，字段可以是关联表，__
-        4，对多对表中反向查找使用_set
+        4，对多对表中反向查找使用class_set,如果指定了related_name="xx",在反向查询的时候可以使用xx代替class_set
+        5，注意get(),filter(),all()的区别，get是获取一个QuerySet对象，可以直接.get().字段名称，filter和all是一个QuerySet集合无法直接.字段名
+
     :param request:
     :return:
     """
@@ -282,6 +284,14 @@ def test(request):
     # 一对多表
     # models.Book.objects.filter(id=4).delete()
 
+    # 多个外键的跨表正向查询和反向查询
+    # models.User.objects.get(username="alex").user_type.menus.all()
+    # models.User.objects.get(username="alex").user_type.menus.filter(name="配置管理")
+    # models.User.objects.get(username="alex").user_type.menus.get(name="主机信息")
+    # for mu in models.User.objects.get(username="tang.gang").user_type.menus.all():
+    #    print(mu.op.all())
+    # models.User.objects.get(username="tang.gang").user_type.menus.get().op.all()
+    
     # 多对多表
     # obj = models.Author.objects.filter(id=1)[0]
     # obj.m.remove(7)
@@ -307,3 +317,4 @@ def upload(request):
         return HttpResponse(json.dumps(ret)) # xhrHttpRequest 和 ajax 提交
     else:
         return redirect("/login.html")
+
